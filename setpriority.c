@@ -3,16 +3,20 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <string.h>
+#include <semaphore.h>
 #include <linux/sched.h>
 
 volatile int running = 1;
-char letters[26] = {'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z'};
+char *buffer;
+char letters[26] = {'Z', 'Y', 'X', 'W', 'V', 'U', 'T', 'S', 'R', 'Q', 'P', 'O', 'N', 'M', 'L', 'K', 'J', 'I', 'H', 'G', 'F', 'E', 'D', 'C', 'B', 'A'};
 
 void *run(void *data)
 {
 	char * c = (char *)data;
-	printf("DATA %s", c);
-	while (running);
+	
+	while (running) {
+		printf("%s\n", c);
+	}
 
 	return 0;
 }
@@ -77,7 +81,7 @@ int setpriority(pthread_t *thr, int newpolicy, int newpriority)
 
 int main(int argc, char **argv)
 {
-	int *thread_number;
+	int thread_number;
 	int policy = -1;
 
 	if (argc < 2){
@@ -90,7 +94,8 @@ int main(int argc, char **argv)
 	printf("Scheduler policy: %s\n", argv[3]);
 	printf("Priority: %s\n", argv[4]);
 
-	// char *string_policy = argv[3];{
+	buffer = malloc(sizeof(char) * atoi(argv[2]));
+
 	if (strcmp(argv[3], "SCHED_DEADLINE") == 0) {
 		policy = SCHED_DEADLINE;
 	} else if (strcmp(argv[3], "SCHED_FIFO") == 0) {
@@ -104,14 +109,18 @@ int main(int argc, char **argv)
 	}  else if (strcmp(argv[3], "SCHED_IDLE") == 0) {
 		policy = SCHED_IDLE;
 	}
-	print("AAAAAAAAAAAAAAAAAA")
-	printf("%d", policy);
 
-	*thread_number = atoi(argv[1]);
+	if (policy == -1) {
+		return 0;
+	}
+
+	thread_number = atoi(argv[1]);
 	while(thread_number > 0) {
+		printf("%d\n", thread_number);
 		pthread_t thr;
-		pthread_create(&thr, NULL, run, &thread_number);
-		setpriority(&thr, SCHED_FIFO, 1);
+		pthread_create(&thr, NULL, run, &letters[26-thread_number]);
+		print_sched(policy);
+		setpriority(&thr, policy, atoi(argv[4]));
 		pthread_join(thr, NULL);
 		thread_number -= 1;
 	}
